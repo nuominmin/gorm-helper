@@ -21,6 +21,11 @@ func FindWithCount[T Model](db *gorm.DB, ctx context.Context, page, size int, op
 	return data, total, ApplyOptions[T](db, ctx, opts...).Offset(offset).Limit(limit).Find(&data).Error
 }
 
+// FindAll 查询所有
+func FindAll[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data []*T, err error) {
+	return data, ApplyOptions[T](db, ctx, opts...).Find(&data).Error
+}
+
 // First 查询指定表的第一行数据
 func First[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data *T, err error) {
 	return data, ApplyOptions[T](db, ctx, opts...).First(&data).Error
