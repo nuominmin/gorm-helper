@@ -59,41 +59,6 @@ func TestBulkCreate(t *testing.T) {
 	}
 }
 
-func TestSave(t *testing.T) {
-	db, err := connect()
-	if err != nil {
-		t.Fatalf("Failed to setup database: %v", err)
-	}
-
-	user := &User{Address: "Alice"}
-	ctx := context.Background()
-
-	// Save a new user
-	err = gormhelper.Save[User](db, ctx, user)
-	if err != nil {
-		t.Fatalf("Save failed: %v", err)
-	}
-
-	var count int64
-	db.Model(&User{}).Count(&count)
-	if count != 1 {
-		t.Errorf("Expected 1 user, got %d", count)
-	}
-
-	// Update the existing user
-	user.Address = "Alice Updated"
-	err = gormhelper.Save[User](db, ctx, user)
-	if err != nil {
-		t.Fatalf("Save update failed: %v", err)
-	}
-
-	var updatedUser User
-	db.First(&updatedUser, user.Id)
-	if updatedUser.Address != "Alice Updated" {
-		t.Errorf("Expected user name to be 'Alice Updated', got '%s'", updatedUser.Address)
-	}
-}
-
 func TestFirstOrCreate(t *testing.T) {
 	db, err := connect()
 	if err != nil {

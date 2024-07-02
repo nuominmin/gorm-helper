@@ -17,5 +17,5 @@ func UpdateOrCreate[T Model](db *gorm.DB, ctx context.Context, defaultData *T, u
 		return ApplyOptions[T](db, ctx, opts...).Updates(updateData).Error
 	}
 
-	return db.WithContext(ctx).Table(GetTableName[T]()).Create(defaultData).Error
+	return Create(db, ctx, defaultData)
 }
