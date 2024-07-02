@@ -23,8 +23,7 @@ func Create[T Model](db *gorm.DB, ctx context.Context, data *T, opts ...Option) 
 
 // FirstOrCreate 查询指定表的第一行数据, 如果不存在则创建
 func FirstOrCreate[T Model](db *gorm.DB, ctx context.Context, defaultData *T, opts ...Option) (data *T, err error) {
-	data, err = First[T](db, ctx, opts...)
-	if err != nil {
+	if data, err = FirstWithoutIgnore[T](db, ctx, opts...); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return defaultData, Create(db, ctx, defaultData)
 		}

@@ -2,6 +2,7 @@ package gormhelper
 
 import (
 	"context"
+	"errors"
 	"gorm.io/gorm"
 )
 
@@ -28,5 +29,16 @@ func FindAll[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data []
 
 // First 查询指定表的第一行数据
 func First[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data *T, err error) {
+	if data, err = FirstWithoutIgnore[T](db, ctx, opts...); err != nil {
+		if options := NewOptions(opts...); options.Ignore && errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return data, err
+}
+
+// FirstWithoutIgnore  查询指定表的第一行数据
+func FirstWithoutIgnore[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data *T, err error) {
 	return data, ApplyOptions[T](db, ctx, opts...).First(&data).Error
 }
