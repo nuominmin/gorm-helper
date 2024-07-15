@@ -78,6 +78,30 @@ func TestFirstOrCreate(t *testing.T) {
 	t.Logf("%+v", data)
 }
 
+func TestUpdateOrCreate(t *testing.T) {
+	db, err := connect()
+	if err != nil {
+		t.Fatalf("Failed to setup database: %v", err)
+	}
+
+	ctx := context.Background()
+
+	defaultData := &User{
+		Address: "Bob1",
+	}
+
+	updateData := map[string]interface{}{
+		"address": "Bob2",
+	}
+
+	// Save a new user
+	err = gormhelper.UpdateOrCreate[User](db, ctx, defaultData, updateData, gormhelper.WithWhere("address = ?", "Bob1"))
+	if err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+}
+
 func TestFindWithCount(t *testing.T) {
 	db, err := connect()
 	if err != nil {
@@ -143,5 +167,13 @@ func connect() (*gorm.DB, error) {
 	db.SetMaxIdleConns(10)
 	db.SetMaxOpenConns(100)
 	db.SetConnMaxLifetime(time.Second * 300)
+
+	// 创建数据表
+	err = conn.
+		Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_bin").
+		AutoMigrate(
+			&User{},
+		)
+
 	return conn, nil
 }

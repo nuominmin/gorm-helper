@@ -26,10 +26,15 @@ func NewOptions(opts ...Option) Options {
 	return options
 }
 
+// Apply 应用
+func Apply[T Model](db *gorm.DB, ctx context.Context) *gorm.DB {
+	return db.WithContext(ctx).Table(GetTableName[T]())
+}
+
 // ApplyOptions 应用选项到查询中
 func ApplyOptions[T Model](db *gorm.DB, ctx context.Context, opts ...Option) *gorm.DB {
 	options := NewOptions(opts...)
-	query := db.WithContext(ctx).Table(GetTableName[T]())
+	query := Apply[T](db, ctx)
 	for i := 0; i < len(options.Wheres); i++ {
 		query = query.Where(options.Wheres[i].Query, options.Wheres[i].Args...)
 	}
