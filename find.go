@@ -18,6 +18,11 @@ func FindWithCount[T Model](db *gorm.DB, ctx context.Context, page, size int, op
 		return nil, 0, err
 	}
 
+	return Find[T](db, ctx, page, size, opts...)
+}
+
+// Find 查询指定表的数据并返回结果集
+func Find[T Model](db *gorm.DB, ctx context.Context, page, size int, opts ...Option) (data []*T, total int64, err error) {
 	offset, limit := PagingParams(page, size)
 	return data, total, ApplyOptions[T](db, ctx, opts...).Offset(offset).Limit(limit).Find(&data).Error
 }
