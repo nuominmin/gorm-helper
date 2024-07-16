@@ -18,6 +18,10 @@ func FindWithCount[T Model](db *gorm.DB, ctx context.Context, page, size int, op
 		return nil, 0, err
 	}
 
+	if total == 0 {
+		return make([]*T, 0), 0, nil
+	}
+
 	return Find[T](db, ctx, page, size, opts...)
 }
 
