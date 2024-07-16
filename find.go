@@ -22,13 +22,16 @@ func FindWithCount[T Model](db *gorm.DB, ctx context.Context, page, size int, op
 		return make([]*T, 0), 0, nil
 	}
 
-	return Find[T](db, ctx, page, size, opts...)
+	if data, err = Find[T](db, ctx, page, size, opts...); err != nil {
+		return nil, 0, err
+	}
+	return data, total, nil
 }
 
 // Find 查询指定表的数据并返回结果集
-func Find[T Model](db *gorm.DB, ctx context.Context, page, size int, opts ...Option) (data []*T, total int64, err error) {
+func Find[T Model](db *gorm.DB, ctx context.Context, page, size int, opts ...Option) (data []*T, err error) {
 	offset, limit := PagingParams(page, size)
-	return data, total, ApplyOptions[T](db, ctx, opts...).Offset(offset).Limit(limit).Find(&data).Error
+	return data, ApplyOptions[T](db, ctx, opts...).Offset(offset).Limit(limit).Find(&data).Error
 }
 
 // FindAll 查询所有
