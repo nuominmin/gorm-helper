@@ -50,6 +50,18 @@ func First[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data *T, 
 	return data, err
 }
 
+// FirstWithTransform 查询指定表的第一行数据并进行转换
+func FirstWithTransform[T Model, D any](db *gorm.DB, ctx context.Context, transformFunc func(*T) *D, opts ...Option) (dto *D, err error) {
+	var data *T
+	if err = ApplyOptions[T](db, ctx, opts...).First(&data).Error; err != nil {
+		if options := NewOptions(opts...); options.Ignore && errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return transformFunc(data), nil
+}
+
 // FirstWithoutIgnore 查询指定表的第一行数据 (不忽略 opts 传入的 Ignore)
 func FirstWithoutIgnore[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data *T, err error) {
 	return data, ApplyOptions[T](db, ctx, opts...).First(&data).Error
