@@ -6,6 +6,7 @@ import (
 	"errors"
 	"gorm.io/gorm"
 	"reflect"
+	"strings"
 )
 
 // UpdateOrCreate 根据 where 检索数据更新，如果不存在则创建数据
@@ -26,7 +27,9 @@ func UpdateOrCreate[T Model](db *gorm.DB, ctx context.Context, defaultData *T, u
 		if err = ApplyOptions[T](db, ctx, opts...).Select(primaryKeyFieldDBName).First(&result).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 创建新数据
-				return Create(tx, ctx, defaultData)
+				if err = ApplyOptions[T](db, ctx, opts...).Create(defaultData).Error; err != nil && strings.Contains(err.Error(), DUPLICATE_ENTRY) {
+					return ApplyOptions[T](tx, ctx).Updates(updateData).Error
+				}
 			}
 			return err
 		}
