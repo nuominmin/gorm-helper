@@ -28,7 +28,7 @@ func UpdateOrCreate[T Model](db *gorm.DB, ctx context.Context, defaultData *T, u
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 创建新数据
 				if err = ApplyOptions[T](db, ctx, opts...).Create(defaultData).Error; err != nil && strings.Contains(err.Error(), DUPLICATE_ENTRY) {
-					return ApplyOptions[T](tx, ctx).Updates(updateData).Error
+					return ApplyOptions[T](tx, ctx, opts...).Updates(updateData).Error
 				}
 			}
 			return err
@@ -63,4 +63,9 @@ func getFieldValueByName(model interface{}, fieldName string) (interface{}, erro
 		return nil, errors.New("field not found")
 	}
 	return f.Interface(), nil
+}
+
+// UpdateColumn 更新单列
+func UpdateColumn[T Model](db *gorm.DB, ctx context.Context, column string, value interface{}, opts ...Option) (err error) {
+	return ApplyOptions[T](db, ctx, opts...).Update(column, value).Error
 }
