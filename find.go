@@ -34,9 +34,36 @@ func Find[T Model](db *gorm.DB, ctx context.Context, page, size int, opts ...Opt
 	return data, ApplyOptions[T](db, ctx, opts...).Offset(offset).Limit(limit).Find(&data).Error
 }
 
+// FindWithTransform 查询指定表的数据并进行转换
+func FindWithTransform[T Model, D any](db *gorm.DB, ctx context.Context, page, size int, transformFunc func(*T) *D, opts ...Option) (dto []*D, err error) {
+	var data []*T
+	if data, err = Find[T](db, ctx, page, size, opts...); err != nil {
+		return nil, err
+	}
+	dto = make([]*D, 0)
+	for i := 0; i < len(data); i++ {
+		dto = append(dto, transformFunc(data[i]))
+	}
+
+	return dto, nil
+}
+
 // FindAll 查询所有
 func FindAll[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data []*T, err error) {
 	return data, ApplyOptions[T](db, ctx, opts...).Find(&data).Error
+}
+
+// FindAllWithTransform 查询指定表的所有数据并进行转换
+func FindAllWithTransform[T Model, D any](db *gorm.DB, ctx context.Context, transformFunc func(*T) *D, opts ...Option) (dto []*D, err error) {
+	var data []*T
+	if data, err = FindAll[T](db, ctx, opts...); err != nil {
+		return nil, err
+	}
+	dto = make([]*D, 0)
+	for i := 0; i < len(data); i++ {
+		dto = append(dto, transformFunc(data[i]))
+	}
+	return dto, nil
 }
 
 // First 查询指定表的第一行数据
