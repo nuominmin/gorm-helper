@@ -91,15 +91,18 @@ func TestUpdateOrCreate(t *testing.T) {
 	}
 
 	updateData := map[string]interface{}{
-		"address": "Bob2",
+		"address": "xxxxxx222xxx1xx",
+		"level":   "2",
 	}
 
 	// Save a new user
-	err = gormhelper.UpdateOrCreate[User](db, ctx, defaultData, updateData, gormhelper.WithWhere("address = ?", "Bob1"))
+	var data *User
+	data, err = gormhelper.Upsert[User](db, ctx, defaultData, updateData, gormhelper.WithWhere("address = ?", "xxxxxx222xxx1xx"))
 	if err != nil {
 		t.Fatalf("Save failed: %v", err)
 	}
 
+	t.Logf("%+v", data)
 }
 
 func TestFindWithCount(t *testing.T) {

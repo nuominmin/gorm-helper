@@ -2,20 +2,21 @@ package gormhelper
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"reflect"
 	"strings"
 )
 
-// UpdateOrCreate 根据 where 检索数据更新，如果不存在则创建数据
-func UpdateOrCreate[T Model](db *gorm.DB, ctx context.Context, defaultData *T, updateData map[string]interface{}, opts ...Option) (err error) {
-	return db.Transaction(func(tx *gorm.DB) error {
-		var result *T
+// Upsert 根据 where 检索数据更新，如果不存在则创建数据
+func Upsert[T Model](db *gorm.DB, ctx context.Context, defaultData *T, updateData map[string]interface{}, opts ...Option) (*T, error) {
+	var result T
+	return &result, db.Transaction(func(tx *gorm.DB) error {
 		// 获取模型的主键字段名称
 		stmt := &gorm.Statement{DB: tx}
-		if err = stmt.Parse(&result); err != nil {
+		if err := stmt.Parse(&result); err != nil {
 			return err
 		}
 		if len(stmt.Schema.PrimaryFields) == 0 {
@@ -24,45 +25,44 @@ func UpdateOrCreate[T Model](db *gorm.DB, ctx context.Context, defaultData *T, u
 		primaryKeyFieldName := stmt.Schema.PrimaryFields[0].Name
 		primaryKeyFieldDBName := stmt.Schema.PrimaryFields[0].DBName
 
-		if err = ApplyOptions[T](db, ctx, opts...).Select(primaryKeyFieldDBName).First(&result).Error; err != nil {
+		if err := ApplyOptions[T](tx, ctx, opts...).Select(primaryKeyFieldDBName).First(&result).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 创建新数据
-				if err = ApplyOptions[T](db, ctx, opts...).Create(defaultData).Error; err != nil && strings.Contains(err.Error(), DUPLICATE_ENTRY) {
-					return ApplyOptions[T](tx, ctx, opts...).Updates(updateData).Error
+				if err = ApplyOptions[T](tx, ctx, opts...).Create(defaultData).Error; err != nil {
+					if strings.Contains(err.Error(), DUPLICATE_ENTRY) {
+						// 更新成功，获取更新后的数据
+						if err = Apply[T](tx, ctx).Where(defaultData).First(&result).Error; err != nil {
+							return fmt.Errorf("get updated data failed, error: %v", err)
+						}
+						return nil
+					}
+					return fmt.Errorf("create data failed, error: %v", err)
 				}
+				result = *defaultData
+				return nil
 			}
-			return err
+			return fmt.Errorf("find data failed, error: %v", err)
 		}
 
-		// 将 result 转为 map
-		var resultBytes []byte
-		if resultBytes, err = json.Marshal(result); err != nil {
-			return err
-		}
-		resultMap := make(map[string]interface{})
-		if err = json.Unmarshal(resultBytes, &resultMap); err != nil {
-			return err
-		}
-
-		// 从 map 中获取主键字段的值
-		primaryKeyValue, ok := resultMap[primaryKeyFieldName]
-		if !ok {
-			return errors.New("primary key field value not found")
-		}
+		primaryKeyValue := reflect.ValueOf(result).FieldByName(primaryKeyFieldName).Interface()
 
 		// 如果找到了记录，则进行更新
-		return Apply[T](tx, ctx).Where(primaryKeyFieldDBName+" = ?", primaryKeyValue).Updates(updateData).Error
+		if err := Apply[T](tx, ctx).Where(primaryKeyFieldDBName+" = ?", primaryKeyValue).Updates(updateData).Error; err != nil {
+			return fmt.Errorf("data found but update failed, error: %v", err)
+		}
+
+		// 更新成功，获取更新后的数据
+		if err := tx.First(&result, primaryKeyValue).Error; err != nil {
+			return fmt.Errorf("get updated data failed, error: %v", err)
+		}
+		return nil
 	})
 }
 
-// 通过字段名获取字段值
-func getFieldValueByName(model interface{}, fieldName string) (interface{}, error) {
-	v := reflect.ValueOf(model).Elem()
-	f := v.FieldByName(fieldName)
-	if !f.IsValid() {
-		return nil, errors.New("field not found")
-	}
-	return f.Interface(), nil
+// 判断是否唯一键冲突错误
+func IsDuplicateEntryError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return errors.As(err, &mysqlErr) && mysqlErr.Number == 1062
 }
 
 // UpdateColumn 更新单列
