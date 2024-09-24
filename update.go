@@ -12,6 +12,19 @@ import (
 
 // Upsert 根据 where 检索数据更新，如果不存在则创建数据
 func Upsert[T Model](db *gorm.DB, ctx context.Context, defaultData *T, updateData map[string]interface{}, opts ...Option) (*T, error) {
+	if defaultData == nil {
+		return nil, errors.New("defaultData is nil")
+	}
+	if updateData == nil {
+		return nil, errors.New("updateData is nil")
+	}
+	if len(opts) == 0 {
+		return nil, errors.New("opts is nil")
+	}
+	if options := NewOptions(opts...); len(options.Wheres) == 0 {
+		return nil, errors.New("wheres is nil")
+	}
+
 	var result T
 	return &result, db.Transaction(func(tx *gorm.DB) error {
 		// 获取模型的主键字段名称
