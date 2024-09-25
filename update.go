@@ -82,3 +82,8 @@ func IsDuplicateEntryError(err error) bool {
 func UpdateColumn[T Model](db *gorm.DB, ctx context.Context, column string, value interface{}, opts ...Option) (err error) {
 	return ApplyOptions[T](db, ctx, opts...).Update(column, value).Error
 }
+
+// Updates 更新
+func Updates[T Model](db *gorm.DB, ctx context.Context, values map[string]interface{}, opts ...Option) (err error) {
+	return ApplyOptions[T](db, ctx, opts...).Updates(values).Error
+}
