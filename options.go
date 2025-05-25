@@ -6,9 +6,9 @@ import (
 )
 
 type Options struct {
-	OrderBy string
-	Wheres  []WhereClause
-	Ignore  bool
+	orderBy string
+	wheres  []WhereClause
+	ignore  bool
 }
 
 type WhereClause struct {
@@ -18,7 +18,7 @@ type WhereClause struct {
 
 type Option func(*Options)
 
-func NewOptions(opts ...Option) Options {
+func newOptions(opts ...Option) Options {
 	var options Options
 	for _, opt := range opts {
 		opt(&options)
@@ -33,13 +33,13 @@ func Apply[T Model](db *gorm.DB, ctx context.Context) *gorm.DB {
 
 // ApplyOptions 应用选项到查询中
 func ApplyOptions[T Model](db *gorm.DB, ctx context.Context, opts ...Option) *gorm.DB {
-	options := NewOptions(opts...)
+	options := newOptions(opts...)
 	query := Apply[T](db, ctx)
-	for i := 0; i < len(options.Wheres); i++ {
-		query = query.Where(options.Wheres[i].Query, options.Wheres[i].Args...)
+	for i := 0; i < len(options.wheres); i++ {
+		query = query.Where(options.wheres[i].Query, options.wheres[i].Args...)
 	}
-	if options.OrderBy != "" {
-		query = query.Order(options.OrderBy)
+	if options.orderBy != "" {
+		query = query.Order(options.orderBy)
 	}
 	return query
 }
@@ -47,19 +47,19 @@ func ApplyOptions[T Model](db *gorm.DB, ctx context.Context, opts ...Option) *go
 // WithOrderBy 用于设置排序字段
 func WithOrderBy(orderBy string) Option {
 	return func(opts *Options) {
-		opts.OrderBy = orderBy
+		opts.orderBy = orderBy
 	}
 }
 
 // WithWhere 用于设置 where 条件
 func WithWhere(query interface{}, args ...interface{}) Option {
 	return func(opts *Options) {
-		opts.Wheres = append(opts.Wheres, WhereClause{Query: query, Args: args})
+		opts.wheres = append(opts.wheres, WhereClause{Query: query, Args: args})
 	}
 }
 
 func WithIgnore() Option {
 	return func(opts *Options) {
-		opts.Ignore = true
+		opts.ignore = true
 	}
 }

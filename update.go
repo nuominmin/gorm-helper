@@ -21,7 +21,7 @@ func Upsert[T Model](db *gorm.DB, ctx context.Context, defaultData *T, updateDat
 	if len(opts) == 0 {
 		return nil, errors.New("opts is nil")
 	}
-	if options := NewOptions(opts...); len(options.Wheres) == 0 {
+	if options := newOptions(opts...); len(options.wheres) == 0 {
 		return nil, errors.New("wheres is nil")
 	}
 

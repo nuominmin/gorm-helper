@@ -14,7 +14,7 @@ func BulkCreate[T Model](db *gorm.DB, ctx context.Context, data []*T, batchSize 
 		return nil
 	}
 
-	options := NewOptions(opts...)
+	options := newOptions(opts...)
 	tableName := GetTableName[T]()
 	columns, placeholders := getColumnsAndPlaceholders(data[0])
 
@@ -25,7 +25,7 @@ func BulkCreate[T Model](db *gorm.DB, ctx context.Context, data []*T, batchSize 
 		}
 
 		sql := "INSERT "
-		if options.Ignore {
+		if options.ignore {
 			sql += "IGNORE "
 		}
 		sql += "INTO " + tableName + " (" + columns + ") VALUES "

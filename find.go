@@ -69,7 +69,7 @@ func FindAllWithTransform[T Model, D any](db *gorm.DB, ctx context.Context, tran
 // First 查询指定表的第一行数据
 func First[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data *T, err error) {
 	if err = ApplyOptions[T](db, ctx, opts...).First(&data).Error; err != nil {
-		if options := NewOptions(opts...); options.Ignore && errors.Is(err, gorm.ErrRecordNotFound) {
+		if options := newOptions(opts...); options.ignore && errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
@@ -81,7 +81,7 @@ func First[T Model](db *gorm.DB, ctx context.Context, opts ...Option) (data *T, 
 func FirstWithTransform[T Model, D any](db *gorm.DB, ctx context.Context, transformFunc func(*T) *D, opts ...Option) (dto *D, err error) {
 	var data *T
 	if err = ApplyOptions[T](db, ctx, opts...).First(&data).Error; err != nil {
-		if options := NewOptions(opts...); options.Ignore && errors.Is(err, gorm.ErrRecordNotFound) {
+		if options := newOptions(opts...); options.ignore && errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err

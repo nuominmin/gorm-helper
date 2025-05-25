@@ -13,7 +13,7 @@ const DUPLICATE_ENTRY = "Duplicate entry"
 func Create[T Model](db *gorm.DB, ctx context.Context, data *T, opts ...Option) error {
 	err := ApplyOptions[T](db, ctx, opts...).Create(data).Error
 	if err != nil {
-		if options := NewOptions(opts...); options.Ignore && strings.Contains(err.Error(), DUPLICATE_ENTRY) {
+		if options := newOptions(opts...); options.ignore && strings.Contains(err.Error(), DUPLICATE_ENTRY) {
 			return nil
 		}
 		return err
