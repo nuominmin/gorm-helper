@@ -1,25 +1,27 @@
 package gormhelper
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"time"
 )
 
 // ConnectMysql
 // dsn: root:123456@tcp(127.0.0.1:3306)/database?charset=utf8mb4&parseTime=True&loc=Local
-func ConnectMysql(dsn string, opts ...ConnOption) (*gorm.DB, error) {
+func ConnectMysql(dsn string, opts ...ConnOption) (*gorm.DB, func(), error) {
 	options := newConnOptions(opts...)
 	return Connect(mysql.Open(dsn), options)
 }
 
 // ConnectSqlite
 // dsn: file:data.db?cache=shared&mode=rwc
-func ConnectSqlite(dsn string, opts ...ConnOption) (*gorm.DB, error) {
+func ConnectSqlite(dsn string, opts ...ConnOption) (*gorm.DB, func(), error) {
 	options := newConnOptions(opts...)
 	return Connect(sqlite.New(sqlite.Config{
 		DriverName: "sqlite",
@@ -28,19 +30,19 @@ func ConnectSqlite(dsn string, opts ...ConnOption) (*gorm.DB, error) {
 }
 
 // Connect .
-func Connect(dialector gorm.Dialector, options ConnOptions) (*gorm.DB, error) {
+func Connect(dialector gorm.Dialector, options ConnOptions) (*gorm.DB, func(), error) {
 	conn, err := gorm.Open(dialector, options.config)
 	if err != nil {
-		return nil, fmt.Errorf("faile to open database: %v", err)
+		return nil, nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	if options.logLevel > 0 {
+	if options.logLevel != logger.Silent {
 		conn.Logger = conn.Logger.LogMode(options.logLevel)
 	}
 
 	var db *sql.DB
 	if db, err = conn.DB(); err != nil {
-		return nil, fmt.Errorf("failed to : %v", err)
+		return nil, nil, fmt.Errorf("failed to get underlying sql.DB: %v", err)
 	}
 
 	if options.maxIdleConns > 0 {
@@ -54,8 +56,10 @@ func Connect(dialector gorm.Dialector, options ConnOptions) (*gorm.DB, error) {
 	if options.connMaxLifetime > 0 {
 		db.SetConnMaxLifetime(options.connMaxLifetime)
 	}
-
-	return conn, nil
+	cleanup := func() {
+		_ = db.Close()
+	}
+	return conn, cleanup, nil
 }
 
 type ConnOptions struct {
@@ -71,22 +75,21 @@ type ConnOption func(*ConnOptions)
 func newConnOptions(opts ...ConnOption) ConnOptions {
 	options := ConnOptions{
 		config:          &gorm.Config{},
-		logLevel:        1,
+		logLevel:        logger.Silent,
 		maxIdleConns:    10,
 		maxOpenConns:    100,
 		connMaxLifetime: time.Second * 300,
 	}
 	for _, opt := range opts {
-		opt(&options)
+		if opt != nil {
+			opt(&options)
+		}
 	}
 	return options
 }
 
 // WithConnLogLevel default silent
-// 1. silent
-// 2. error
-// 3. warn
-// 4. info
+// 可选值: logger.Silent, logger.Error, logger.Warn, logger.Info
 func WithConnLogLevel(logLevel logger.LogLevel) ConnOption {
 	return func(opts *ConnOptions) {
 		opts.logLevel = logLevel
@@ -122,4 +125,26 @@ func WithConnOpenConfig(c *gorm.Config) ConnOption {
 	return func(opts *ConnOptions) {
 		opts.config = c
 	}
+}
+
+// GetDBStats 获取数据库连接池统计信息
+func GetDBStats(db *gorm.DB) (sql.DBStats, error) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return sql.DBStats{}, fmt.Errorf("failed to get underlying sql.DB: %w", err)
+	}
+	return sqlDB.Stats(), nil
+}
+
+// HealthCheck 检查数据库连接健康状态
+func HealthCheck(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get underlying sql.DB: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return sqlDB.PingContext(ctx)
 }

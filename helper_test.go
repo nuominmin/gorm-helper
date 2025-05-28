@@ -34,10 +34,11 @@ func TestGetTableName(t *testing.T) {
 }
 
 func TestBulkCreate(t *testing.T) {
-	db, err := gormhelper.ConnectMysql(mysqlDsn)
+	db, cleanup, err := gormhelper.ConnectMysql(mysqlDsn)
 	if err != nil {
 		t.Fatalf("Failed to setup database: %v", err)
 	}
+	defer cleanup()
 	db.AutoMigrate(&User{})
 
 	users := []*User{
@@ -60,10 +61,11 @@ func TestBulkCreate(t *testing.T) {
 }
 
 func TestFirstOrCreate(t *testing.T) {
-	db, err := gormhelper.ConnectMysql(mysqlDsn)
+	db, cleanup, err := gormhelper.ConnectMysql(mysqlDsn)
 	if err != nil {
 		t.Fatalf("Failed to setup database: %v", err)
 	}
+	defer cleanup()
 	db.AutoMigrate(&User{})
 
 	ctx := context.Background()
@@ -80,10 +82,11 @@ func TestFirstOrCreate(t *testing.T) {
 }
 
 func TestUpdateOrCreate(t *testing.T) {
-	db, err := gormhelper.ConnectMysql(mysqlDsn)
+	db, cleanup, err := gormhelper.ConnectMysql(mysqlDsn)
 	if err != nil {
 		t.Fatalf("Failed to setup database: %v", err)
 	}
+	defer cleanup()
 	db.AutoMigrate(&User{})
 
 	ctx := context.Background()
@@ -108,10 +111,11 @@ func TestUpdateOrCreate(t *testing.T) {
 }
 
 func TestFindWithCount(t *testing.T) {
-	db, err := gormhelper.ConnectMysql(mysqlDsn)
+	db, cleanup, err := gormhelper.ConnectMysql(mysqlDsn)
 	if err != nil {
 		t.Fatalf("Failed to setup database: %v", err)
 	}
+	defer cleanup()
 	db.AutoMigrate(&User{})
 
 	users := []*User{
@@ -136,10 +140,12 @@ func TestFindWithCount(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	db, err := gormhelper.ConnectMysql(mysqlDsn)
+	db, cleanup, err := gormhelper.ConnectMysql(mysqlDsn)
 	if err != nil {
 		t.Fatalf("Failed to setup database: %v", err)
 	}
+	defer cleanup()
+
 	db.AutoMigrate(&User{})
 
 	users := []*User{
